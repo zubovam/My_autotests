@@ -1,4 +1,6 @@
-import random
+# import random
+import time
+import requests
 import allure
 from my_autotests.locators.elements_page_locators import *
 from my_autotests.pages.base_page import BasePage
@@ -114,9 +116,9 @@ class WebTablePage(BasePage):
 
     @allure.title("check new added person")
     def check_new_added_person(self):
-        people = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
+        peoples = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
         data = []
-        for i in people:
+        for i in peoples:
             data.append(i.text.splitlines())
         return data
 
@@ -138,6 +140,7 @@ class WebTablePage(BasePage):
         self.element_is_visible(self.locators.AGE_INPUT).clear()
         self.element_is_visible(self.locators.AGE_INPUT).send_keys(age)
         self.element_is_visible(self.locators.SUBMIT).click()
+        return str(age)
 
     @allure.title("delete person")
     def delete_person(self):
@@ -152,13 +155,65 @@ class WebTablePage(BasePage):
         self.remove_footer()
         count = [5, 10, 20, 25, 50, 100]
         data = []
+        time.sleep(2)
+
         for i in count:
+            time.sleep(3)
+            print(f'i = {i}')
             count_row_button = self.element_is_present(self.locators.COUNT_ROW_LIST)
             self.go_to_element(count_row_button)
+            time.sleep(3)
+
             count_row_button.click()
-            self.element_is_visible(By.CSS_SELECTOR, f"""optional[value="{i}"]""").click()
+            time.sleep(3)
+
+            # self.element_is_visible(By.CSS_SELECTOR, f"""optional[value="{i}"]""").click()
+            self.element_is_visible(By.XPATH, f"""// select / option[ @ value = "{i}"]""").click()
+
+
+            data.append(self.check_count_row())
+        return data
 
     @allure.title("check count rows")
     def check_count_row(self):
         list_row = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
         return len(list_row)
+
+
+class ButtonsPage(BasePage):
+    locators = ButtonsPageLocators()
+
+    @allure.step('click on different  buttons')
+    def click_on_different_button(self, type_click):
+        if type_click == "double":
+            on_element = self.element_is_visible(self.locators.DOUBLE_CLICK)
+            self.action_double_click(on_element)
+            return self.check_clicked_on_the_button(self.locators.SUCCESS_DOUBLE)
+        if type_click == "right":
+            on_element = self.element_is_visible(self.locators.RIGHT_CLICK)
+            self.action_right_click(on_element)
+            return self.check_clicked_on_the_button(self.locators.SUCCESS_RIGHT)
+        if type_click == "click":
+            self.element_is_visible(self.locators.CLICK_ME_BUTTON).click()
+            return self.check_clicked_on_the_button(self.locators.SUCCESS_CLICK_ME)
+
+    @allure.step('check clicked button')
+    def check_clicked_on_the_button(self, elem):
+        return self.element_is_present(elem).text
+
+
+class LinksPage(BasePage):
+    locators = LinksPageLocators
+
+    def click_on_simple_link(self):
+        simple_link = self.element_is_visible(self.locators.SIMPLE_LINK)
+        link_href = simple_link.get_attribute('href')
+        # print(link_href)
+        response = requests.get(link_href)
+        if response.status_code == 200:
+            simple_link.click()
+            self.driver.switch_to.window(self.driver.window_handles[1])
+            url = self.driver.current_url
+            return link_href, url
+        else:
+            return response.status_code
