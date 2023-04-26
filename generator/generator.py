@@ -19,3 +19,11 @@ def get_person():
         department=faker_ru.job(),
         salary=random.randint(100, 1000000)
     )
+
+
+def generated_file():
+    path = rf"C:\Users\zubov\Dropbox\RedRover\Python\My_autotests\my_autotests\test{random.randint(0, 999)}.txt"
+    with open(path, 'w+') as f:
+        f.write(f"""Hello World{random.randint(0, 999)}""")
+        f.close()
+    return f.name, path

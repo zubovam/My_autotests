@@ -1,10 +1,15 @@
-# import random
+import random
 import time
 import requests
 import allure
 from my_autotests.locators.elements_page_locators import *
 from my_autotests.pages.base_page import BasePage
 from my_autotests.generator.generator import *
+from selenium.common import TimeoutException
+from io import BytesIO
+# from PIL import Image, UnidentifiedImageError
+import base64
+import os
 
 
 class TextBoxPage(BasePage):
@@ -33,6 +38,21 @@ class TextBoxPage(BasePage):
         permanent_address = self.element_is_present(self.locators.CREATED_PERMANENT_ADDRESS).text.split(':')[1]
         return full_name, email, current_address, permanent_address
 
+    @allure.title("check placeholder value")
+    def get_placeholder(self):
+        full_name = self.element_is_visible(self.locators.FULL_NAME)
+        full_name_placeholder = full_name.get_attribute('placeholder')
+
+        email = self.element_is_visible(self.locators.EMAIL)
+        email_placeholder = email.get_attribute('placeholder')
+
+        current_address = self.element_is_visible(self.locators.CURRENT_ADDRESS)
+        current_address_placeholder = current_address.get_attribute('placeholder')
+
+        permanent_address = self.element_is_visible(self.locators.PERMANENT_ADDRESS)
+        permanent_address_placeholder = permanent_address.get_attribute('placeholder')
+        return full_name_placeholder, email_placeholder, current_address_placeholder, permanent_address_placeholder
+
 
 class CheckBoxPage(BasePage):
     locators = CheckBoxPageLocators()
@@ -41,10 +61,10 @@ class CheckBoxPage(BasePage):
     def open_full_list(self):
         self.element_is_visible(self.locators.EXPAND_BUTTON).click()
 
-    @allure.title("click random")
+    @allure.title("click random checkbox")
     def click_random(self):
         item_list = self.elements_are_visible(self.locators.ITEM_LIST)
-        count = 5
+        count = 3
         while count != 0:
             item = item_list[random.randint(1, 16)]
             if count > 0:
@@ -76,13 +96,13 @@ class RadioButtonPage(BasePage):
     locators = RadioButtonPageLocators()
 
     @allure.title("check click on the radio button")
-    def click_on_the_radio_button(self, choice):
+    def click_on_the_radio_button(self, item):
         choices = {
             'yes': self.locators.YES_BUTTON,
             'impressive': self.locators.IMPRESSIVE_BUTTON,
             'no': self.locators.NO_BUTTON
         }
-        click_button = self.element_is_visible(choices[choice]).click()
+        click_button = self.element_is_visible(choices[item]).click()
         return click_button
 
     @allure.title("check get output result")
@@ -116,9 +136,9 @@ class WebTablePage(BasePage):
 
     @allure.title("check new added person")
     def check_new_added_person(self):
-        peoples = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
+        people = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
         data = []
-        for i in peoples:
+        for i in people:
             data.append(i.text.splitlines())
         return data
 
@@ -146,7 +166,7 @@ class WebTablePage(BasePage):
     def delete_person(self):
         self.element_is_present(self.locators.DELETE_BUTTON).click()
 
-    @allure.title("check deleted")
+    @allure.title("check deleted person")
     def check_deleted(self):
         return self.element_is_present(self.locators.NO_ROWS_FOUND).text
 
@@ -155,33 +175,22 @@ class WebTablePage(BasePage):
         self.remove_footer()
         count = [5, 10, 20, 25, 50, 100]
         data = []
-        time.sleep(2)
-
-        for i in count:
-            time.sleep(3)
-            print(f'i = {i}')
+        for x in count:
             count_row_button = self.element_is_present(self.locators.COUNT_ROW_LIST)
             self.go_to_element(count_row_button)
-            time.sleep(3)
-
             count_row_button.click()
-            time.sleep(3)
-
-            # self.element_is_visible(By.CSS_SELECTOR, f"""optional[value="{i}"]""").click()
-            self.element_is_visible(By.XPATH, f"""// select / option[ @ value = "{i}"]""").click()
-
-
-            data.append(self.check_count_row())
+            self.element_is_visible(By.CSS_SELECTOR, f'option[value="{x}"]').click()
+            data.append(self.check_count_rows())
         return data
 
     @allure.title("check count rows")
-    def check_count_row(self):
+    def check_count_rows(self):
         list_row = self.elements_are_present(self.locators.FULL_PEOPLE_LIST)
         return len(list_row)
 
 
 class ButtonsPage(BasePage):
-    locators = ButtonsPageLocators()
+    locators = ButtonsPageLocators
 
     @allure.step('click on different  buttons')
     def click_on_different_button(self, type_click):
@@ -205,10 +214,10 @@ class ButtonsPage(BasePage):
 class LinksPage(BasePage):
     locators = LinksPageLocators
 
+    @allure.step('check simple link')
     def click_on_simple_link(self):
         simple_link = self.element_is_visible(self.locators.SIMPLE_LINK)
         link_href = simple_link.get_attribute('href')
-        # print(link_href)
         response = requests.get(link_href)
         if response.status_code == 200:
             simple_link.click()
@@ -217,3 +226,95 @@ class LinksPage(BasePage):
             return link_href, url
         else:
             return response.status_code
+
+    @allure.step('check simple link v2')
+    def click_on_simple_link_v2(self):
+        simple_link = self.element_is_visible(self.locators.SIMPLE_LINK)
+        link_href = simple_link.get_attribute('href')
+        simple_link.click()
+        self.driver.switch_to.window(self.driver.window_handles[1])
+        url = self.driver.current_url
+        return link_href, url
+
+    @allure.step('check broken link')
+    def click_on_the_broken_link(self, url):
+        response = requests.get(url)
+        if response.status_code == 200:
+            self.element_is_present(self.locators.BAD_REQUEST_LINK).click()
+        else:
+            return response.status_code
+
+    @allure.step('check all links')
+    def click_on_the_all_links(self, item):
+        self.element_is_visible(self.locators.ALL_LINKS[item[0]]).click()
+        text = self.element_is_visible(self.locators.TEXT_AFTER_CLICK).text
+        response = requests.get(item[1])
+        status_code = str(response.status_code)
+        return text, status_code
+
+    # @allure.step('check broken image')
+    # def broken_image(self):
+    #     link = self.element_is_visible(self.locators.BROKEN_IMAGE).get_attribute('src')
+    #     response = requests.get(link)
+    #     try:
+    #         img = Image.open(BytesIO(response.content))
+    #         return img
+    #     except UnidentifiedImageError:
+    #         return "The image is broken"
+
+
+class DownloadPage(BasePage):
+    locators = DownLoadPageLocators
+
+    @allure.step('download file')
+    def download_file(self):
+        link = self.element_is_present(self.locators.DOWNLOAD_FILE).get_attribute('href')
+        link_b = base64.b64decode(link)
+        path_name_file = rf"../test{random.randint(0, 999)}.jpg"
+        with open(path_name_file, 'wb+') as f:
+            offset = link_b.find(b'\xff\xd8')
+            f.write(link_b[offset:])
+            check_file = os.path.exists(path_name_file)
+            f.close()
+        os.remove(path_name_file)
+        return check_file
+
+
+class UploadPage(BasePage):
+    locators = UploadPageLocators
+
+    @allure.step('upload file')
+    def upload_file(self):
+        file_name, path = generated_file()
+        file_name1 = self.element_is_present(self.locators.UPLOAD_FILE)
+        file_name1.send_keys(path)
+        os.remove(path)
+        text = self.element_is_present(self.locators.UPLOADED_FILE).text
+        return file_name.split("\\")[-1], text.split("\\")[-1]
+
+
+class DynamicPage(BasePage):
+    locators = DynamicPropertiesPageLocators
+
+    @allure.step("check enable button")
+    def check_enable_button(self):
+        try:
+            self.element_is_clicable(self.locators.ENABLE_AFTER_FIVE_SECOND, 5)
+        except TimeoutException:
+            return "Timeout"
+        return True
+
+    @allure.step("check changed of color")
+    def check_changed_of_color(self):
+        color_button = self.element_is_present(self.locators.COLOR_CHANGE_BUTTON)
+        color_button_before = color_button.value_of_css_property("color")
+        time.sleep(6)
+        color_button_after = color_button.value_of_css_property("color")
+        return color_button_before, color_button_after
+
+    def check_appear_button(self):
+        try:
+            self.element_is_visible(self.locators.VISIBLE_AFTER_FIVE_SECOND)
+        except TimeoutException:
+            return "Timeout"
+        return True
