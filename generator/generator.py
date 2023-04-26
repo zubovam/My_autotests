@@ -1,7 +1,7 @@
 from faker import Faker
 import random
 
-from my_autotests.data.data import Person
+from data.data import Person
 
 faker_ru = Faker('ru_RU')
 Faker.seed()
@@ -22,7 +22,7 @@ def get_person():
 
 
 def generated_file():
-    path = rf"C:\Users\zubov\Dropbox\RedRover\Python\My_autotests\my_autotests\test{random.randint(0, 999)}.txt"
+    path = rf"C:\Users\zubov\Dropbox\RedRover\Python\My_autotests\test{random.randint(0, 999)}.txt"
     with open(path, 'w+') as f:
         f.write(f"""Hello World{random.randint(0, 999)}""")
         f.close()

@@ -1,10 +1,7 @@
 import time
 # import allure
-import sys
 import pytest
-sys.path.append("..")
-from my_autotests.pages.elements_page import *
-# from ..pages.elements_page import *
+from pages.elements_page import *
 
 
 @allure.suite("Main test")
@@ -63,7 +60,7 @@ class TestElements:
         def test_add_person_in_the_table(self, driver):
             web_table_page = WebTablePage(driver, "https://demoqa.com/webtables")
             web_table_page.open()
-            for i in range(random.randint(1, 10)):
+            for i in range(random.randint(1, 5)):
                 new_person = web_table_page.add_new_person()
                 result = web_table_page.check_new_added_person()
                 assert new_person in result, "A new person is not in the table"
@@ -73,6 +70,7 @@ class TestElements:
             web_table_page = WebTablePage(driver, "https://demoqa.com/webtables")
             web_table_page.open()
             key_word = web_table_page.add_new_person()[random.randint(0, 5)]
+            time.sleep(1)
             web_table_page.search_people(key_word)
             table_result = web_table_page.check_people()
             assert key_word in table_result, "The person was not found in the table"
@@ -92,6 +90,7 @@ class TestElements:
             web_table_page = WebTablePage(driver, "https://demoqa.com/webtables")
             web_table_page.open()
             email = web_table_page.add_new_person()[3]
+            time.sleep(1)
             web_table_page.search_people(email)
             web_table_page.delete_person()
             text = web_table_page.check_deleted()

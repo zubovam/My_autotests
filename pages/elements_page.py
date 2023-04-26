@@ -2,9 +2,9 @@ import random
 import time
 import requests
 import allure
-from my_autotests.locators.elements_page_locators import *
-from my_autotests.pages.base_page import BasePage
-from my_autotests.generator.generator import *
+from locators.elements_page_locators import *
+from pages.base_page import BasePage
+from generator.generator import *
 from selenium.common import TimeoutException
 from io import BytesIO
 # from PIL import Image, UnidentifiedImageError
